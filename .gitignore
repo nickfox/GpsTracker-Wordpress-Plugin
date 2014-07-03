@@ -11,3 +11,13 @@ wp-content/cache/
 wp-content/backups/
 sitemap.xml.gz
 wp-config.php
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
