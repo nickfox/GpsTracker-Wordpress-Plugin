@@ -28,6 +28,8 @@ if (!class_exists('Gps_Tracker_Map')) {
 
         public static function activate() {
             // placeholder for future plugins
+            
+            // exit(var_dump($_GET));
         }
         
         public static function deactivate() {
