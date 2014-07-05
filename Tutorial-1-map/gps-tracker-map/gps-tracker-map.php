@@ -78,7 +78,7 @@ if (!class_exists('Gps_Tracker_Map')) {
             wp_enqueue_script('google_layer', plugins_url('javascript/leaflet-plugins/google.js', __FILE__), false);
             wp_enqueue_script('bing_layer', plugins_url('javascript/leaflet-plugins/bing.js', __FILE__), false);
             
-            $html = '<div id="map" style="height:400px;width:600px;border:1px solid black;"></div>
+            $html = '<div id="map" style="height:400px;width:600px;border:1px solid black;margin: 10px 0px 20px 0px;"></div>
             <script>
                 var map;            
                 jQuery(function($){
