@@ -11,7 +11,7 @@ License: GPL2
 */
 
 class Gps_Tracker_Updater {
-    private $update_location_route = 'gps-tracker\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\z';
+    private $update_location_route = 'gps-tracker\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\Z';
     private $update_location_query = 'index.php?latitude=%s&longitude=%s&phonenumber=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
     private $update_location_permalink = 'gps-tracker/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s';
 
