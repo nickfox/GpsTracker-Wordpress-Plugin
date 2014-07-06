@@ -18,8 +18,8 @@ if (!class_exists('Gps_Tracker_Map')) {
             register_deactivation_hook(__FILE__, array(get_class($this), 'deactivate'));
             register_uninstall_hook(__FILE__, array(get_class($this), 'uninstall'));
         
-            // to test this plugin, add this shortcode to any page or post: [gps-tracker-map]  
-            add_shortcode('gps-tracker-map', array($this,'map_shortcode'));
+            // to test this plugin, add this shortcode to any page or post: [gps_tracker_map]  
+            add_shortcode('gps_tracker_map', array($this,'map_shortcode'));
             
             add_action('admin_init', array($this, 'admin_init'));
             add_action('admin_menu', array($this, 'admin_menu'));
