@@ -54,7 +54,7 @@ if (!class_exists('Gps_Tracker_Map')) {
         }
         
         public function admin_init() {
-            wp_register_style('leaflet_admin_stylesheet', plugins_url('style.css', __FILE__));
+            wp_register_style('leaflet_admin_stylesheet', plugins_url('styles/style.css', __FILE__));
         }
 
         public function admin_menu() {
@@ -71,10 +71,6 @@ if (!class_exists('Gps_Tracker_Map')) {
             
             wp_enqueue_script('leaflet_js', plugins_url('javascript/leaflet-0.7.3/leaflet.js', __FILE__), false);   
             wp_enqueue_style('leaflet_styles', plugins_url('javascript/leaflet-0.7.3/leaflet.css', __FILE__), false);
-            
-            // these quit working, the https was no longer accessible
-            // wp_enqueue_script('leaflet_js', '//cdn.leafletjs.com/leaflet-0.7.3/leaflet.js', false);    
-            // wp_enqueue_style('leaflet_styles', '//cdn.leafletjs.com/leaflet-0.7.3/leaflet.css', false);
             wp_enqueue_script('google_layer', plugins_url('javascript/leaflet-plugins/google.js', __FILE__), false);
             wp_enqueue_script('bing_layer', plugins_url('javascript/leaflet-plugins/bing.js', __FILE__), false);
             
