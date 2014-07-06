@@ -13,30 +13,30 @@ License: GPL2
 if (!class_exists('Gps_Tracker_Map')) {
     class Gps_Tracker_Map {
             
-        public function __construct() {
-            register_activation_hook(__FILE__, array($this, 'activate'));
-            register_deactivation_hook(__FILE__, array($this, 'deactivate'));
-            register_uninstall_hook(__FILE__, array($this, 'uninstall'));
+        function __construct() {
+            register_activation_hook(__FILE__, array(get_class($this), 'activate'));
+            register_deactivation_hook(__FILE__, array(get_class($this), 'deactivate'));
+            register_uninstall_hook(__FILE__, array(get_class($this), 'uninstall'));
         
             // to test this plugin, add this shortcode to any page or post: [gps-tracker-map]  
             add_shortcode('gps-tracker-map', array($this,'map_shortcode'));
             
             add_action('admin_init', array($this, 'admin_init'));
             add_action('admin_menu', array($this, 'admin_menu'));
-            add_filter('plugin_action_links_' . plugin_basename(__FILE__), array('Gps_Tracker_Map', 'add_action_links'));
+            add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'add_action_links'));
         }
 
-        public static function activate() {
+        static function activate() {
             // placeholder for future plugins
             
             // exit(var_dump($_GET));
         }
         
-        public static function deactivate() {
+        static function deactivate() {
             // placeholder for future plugins
         }
         
-        function uninstall() {
+        static function uninstall() {
             if (!current_user_can('activate_plugins')) {
                 return;
             }          
