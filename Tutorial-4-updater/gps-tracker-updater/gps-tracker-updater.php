@@ -3,7 +3,7 @@ defined('ABSPATH') or exit;
 /*
 Plugin Name: Gps Tracker Updater
 Plugin URI: https://www.websmithing.com/gps-tracker
-Description: This creates a route using the rewrite api and updates the db with locations from the phone.
+Description: This parses the GET request from the phone and updates the db with locations.
 Version: 1.0.0
 Author: Nick Fox
 Author URI: https://www.websmithing.com/hire-me
@@ -12,29 +12,20 @@ License: GPL2
 
 if (!class_exists('Gps_Tracker_Updater')) {
     class Gps_Tracker_Updater {
-        private static $update_location_route = 'gps-tracker\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\Z';
-        private $update_location_query = 'index.php?latitude=%s&longitude=%s&phonenumber=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
-        private $update_location_permalink = 'gps-tracker/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s';
-
+        
         function __construct() {
             register_activation_hook(__FILE__, array(get_class($this), 'activate'));
             register_deactivation_hook(__FILE__, array(get_class($this), 'deactivate'));
             register_uninstall_hook(__FILE__, array(get_class($this), 'uninstall'));
         
-            // to test this plugin, add this shortcode to any page or post: [gps-tracker-route]
-            // to find rewrite rule in db, replace wp_ with your wordpress table prefix
-            // select * from wp_options where option_name = 'rewrite_rules';    
+            // to test this plugin, add this shortcode to any page or post: [gps_tracker_route] 
             add_shortcode('gps_tracker_route', array($this,'gpstracker_shortcode'));
       
-            add_action('generate_rewrite_rules', array($this, 'gpstracker_rewrite_rules'));
             add_filter('query_vars', array($this, 'gpstracker_query_vars'));
             add_action('parse_request', array($this, 'parse_location_request'));
         }
 
-        static function activate() {
-            global $wp_rewrite; 
-            $wp_rewrite->flush_rules();
-        
+        static function activate() {      
             global $wpdb;
             global $charset_collate;
             $table_name = $wpdb->prefix . 'gps_locations';
@@ -146,14 +137,7 @@ if (!class_exists('Gps_Tracker_Updater')) {
         }
 
         static function deactivate() {
-            remove_action('generate_rewrite_rules', array(get_class($this), 'gpstracker_rewrite_rules'));
-            $rules = $GLOBALS['wp_rewrite']->wp_rewrite_rules();
-        
-            if (!isset($rules[self::$update_location_route])) {
-                global $wp_rewrite;
-                $wp_rewrite->flush_rules();
-            }
-        
+
             ////////////////////////////////////////////
             // need to remove this
             ////////////////////////////////////////////
@@ -209,44 +193,18 @@ if (!class_exists('Gps_Tracker_Updater')) {
                 'extrainfo'        => 'na',
                 'eventtype'        => 'wordpress default'
             ), $atts));
+            
             return sprintf('<a href="%s">Gps Tracker Updater</a>',$this->gpstracker_url($latitude, $longitude, $phonenumber, $sessionid, $speed, $direction, $distance, urlencode($gpstime), $locationmethod, $accuracy, $extrainfo, urlencode($eventtype)));
         }
     
         function gpstracker_url($latitude, $longitude, $phonenumber, $sessionid, $speed, $direction,
                 $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype) {
-                    
-            // check if the blog has a permalink structure            
-            if (get_option('permalink_structure')) { 
-                $gpstracker_permalink_url = '%s/' . $this->update_location_permalink;
-                return sprintf($gpstracker_permalink_url, home_url(), $latitude, $longitude, $phonenumber, $sessionid, $speed, $direction, $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
-            } else {
-                $gpstracker_url = '%s/' . $this->update_location_query;
-                return sprintf($gpstracker_url, home_url(), $latitude, $longitude, $phonenumber, $sessionid, $speed, $direction,
-                $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
-            }
+
+                $update_location_query = '%s/index.php?latitude=%s&longitude=%s&phonenumber=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
+
+                return sprintf($update_location_query, home_url(), $latitude, $longitude, $phonenumber, $sessionid, $speed, $direction, $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
         }
-    
-        function gpstracker_rewrite_rules($wp_rewrite) {
-            $new_rules = array(
-            self::$update_location_route => sprintf($this->update_location_query,
-                $wp_rewrite->preg_index(1),
-                $wp_rewrite->preg_index(2),
-                $wp_rewrite->preg_index(3),
-                $wp_rewrite->preg_index(4),
-                $wp_rewrite->preg_index(5),
-                $wp_rewrite->preg_index(6),
-                $wp_rewrite->preg_index(7),
-                $wp_rewrite->preg_index(8),
-                $wp_rewrite->preg_index(9),
-                $wp_rewrite->preg_index(10),
-                $wp_rewrite->preg_index(11),
-                $wp_rewrite->preg_index(12))     
-            );
-      
-            $wp_rewrite->rules = $new_rules + $wp_rewrite->rules;
-            return $wp_rewrite->rules;
-        }
-    
+
         function gpstracker_query_vars($query_vars) {
             $query_vars[] = 'latitude';
             $query_vars[] = 'longitude';
