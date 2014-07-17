@@ -18,8 +18,8 @@ if (!class_exists('Gps_Tracker_Updater')) {
             register_deactivation_hook(__FILE__, array(get_class($this), 'deactivate'));
             register_uninstall_hook(__FILE__, array(get_class($this), 'uninstall'));
         
-            // to test this plugin, add this shortcode to any page or post: [gps_tracker_updater] 
-            add_shortcode('gps_tracker_updater', array($this,'gpstracker_shortcode'));
+            // to test this plugin, add this shortcode to any page or post: [gps_tracker_route] 
+            add_shortcode('gps_tracker_route', array($this,'gpstracker_shortcode'));
       
             add_filter('query_vars', array($this, 'gpstracker_query_vars'));
             add_action('parse_request', array($this, 'parse_location_request'));
@@ -36,7 +36,7 @@ if (!class_exists('Gps_Tracker_Updater')) {
                 last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 latitude decimal(10,6) NOT NULL DEFAULT '0.000000',
                 longitude decimal(10,6) NOT NULL DEFAULT '0.000000',
-                user_name varchar(50) NOT NULL DEFAULT '',
+                phone_number varchar(50) NOT NULL DEFAULT '',
                 session_id varchar(50) NOT NULL DEFAULT '',
                 speed int(10) unsigned NOT NULL DEFAULT '0',
                 direction int(10) unsigned NOT NULL DEFAULT '0',
@@ -48,7 +48,7 @@ if (!class_exists('Gps_Tracker_Updater')) {
                 event_type varchar(50) NOT NULL DEFAULT '',
                 UNIQUE KEY (gps_location_id),
                 KEY session_id_index (session_id),
-                KEY user_name_index (user_name)
+                KEY phone_number_index (phone_number)
                 ) $charset_collate;";
 
             require_once( ABSPATH . 'wp-admin/includes/upgrade.php' ); 
@@ -62,7 +62,7 @@ if (!class_exists('Gps_Tracker_Updater')) {
             	array( 
             		'latitude' => 47.475931, 
             		'longitude' => -122.021119,
-                    'user_name' => 'wordpressUser',
+                    'phone_number' => 'wordpressUser',
                     'session_id' => '1111-1111-1111-1111-1111-1111',
                     'speed' => 137,
                     'direction' => 237,
@@ -86,27 +86,27 @@ if (!class_exists('Gps_Tracker_Updater')) {
             BEGIN
             CREATE TEMPORARY TABLE temp_routes (
                 session_id VARCHAR(50),
-                user_name VARCHAR(50),
+                phone_number VARCHAR(50),
                 start_time DATETIME,
                 end_time DATETIME)
                 ENGINE = MEMORY;
 
-            INSERT INTO temp_routes (session_id, user_name)
-            SELECT DISTINCT session_id, user_name
+            INSERT INTO temp_routes (session_id, phone_number)
+            SELECT DISTINCT session_id, phone_number
             FROM {$table_name};
 
             UPDATE temp_routes tr
             SET start_time = (SELECT MIN(gps_time) FROM {$table_name} gl
             WHERE gl.session_id = tr.session_id
-            AND gl.user_name = tr.user_name);
+            AND gl.phone_number = tr.phone_number);
 
             UPDATE temp_routes tr
             SET end_time = (SELECT MAX(gps_time) FROM {$table_name} gl
             WHERE gl.session_id = tr.session_id
-            AND gl.user_name = tr.user_name);
+            AND gl.phone_number = tr.phone_number);
 
             SELECT
-            CONCAT('{ \"session_id\": \"', CAST(session_id AS CHAR),  '\", \"user_name\": \"', user_name, '\", \"times\": \"(', DATE_FORMAT(start_time, '%b %e %Y %h:%i%p'), ' - ', DATE_FORMAT(end_time, '%b %e %Y %h:%i%p'), ')\" }') json
+            CONCAT('{ \"session_id\": \"', CAST(session_id AS CHAR),  '\", \"phone_number\": \"', phone_number, '\", \"times\": \"(', DATE_FORMAT(start_time, '%b %e %Y %h:%i%p'), ' - ', DATE_FORMAT(end_time, '%b %e %Y %h:%i%p'), ')\" }') json
             FROM temp_routes
             ORDER BY start_time DESC;
 
@@ -121,13 +121,13 @@ if (!class_exists('Gps_Tracker_Updater')) {
         
             $sql = "CREATE PROCEDURE {$procedure_name}(
             _session_id VARCHAR(50),
-            _user_name VARCHAR(50))
+            _phone_number VARCHAR(50))
             BEGIN
             SELECT
-            CONCAT('<locations latitude=\"', CAST(latitude AS CHAR),'\" longitude=\"', CAST(longitude AS CHAR), '\" speed=\"', CAST(speed AS CHAR), '\" direction=\"', CAST(direction AS CHAR), '\" distance=\"', CAST(distance AS CHAR), '\" location_method=\"', location_method, '\" gps_time=\"', DATE_FORMAT(gps_time, '%b %e %Y %h:%i%p'), '\" user_name=\"', user_name,'\" session_id=\"', CAST(session_id AS CHAR), '\" accuracy=\"', CAST(accuracy AS CHAR), '\" extraInfo=\"', extraInfo, '\" />') xml
+            CONCAT('<locations latitude=\"', CAST(latitude AS CHAR),'\" longitude=\"', CAST(longitude AS CHAR), '\" speed=\"', CAST(speed AS CHAR), '\" direction=\"', CAST(direction AS CHAR), '\" distance=\"', CAST(distance AS CHAR), '\" location_method=\"', location_method, '\" gps_time=\"', DATE_FORMAT(gps_time, '%b %e %Y %h:%i%p'), '\" phone_number=\"', phone_number,'\" session_id=\"', CAST(session_id AS CHAR), '\" accuracy=\"', CAST(accuracy AS CHAR), '\" extraInfo=\"', extraInfo, '\" />') xml
             FROM {$table_name}
             WHERE session_id = _session_id
-            AND username = _user_name
+            AND phoneNumber = _phone_number
             ORDER BY last_update;
             END;";
                     
@@ -182,7 +182,7 @@ if (!class_exists('Gps_Tracker_Updater')) {
             extract(shortcode_atts(array(
                 'latitude'         => '47.475931',
                 'longitude'        => '-122.021119',
-                'username'         => 'wordpressUser',
+                'phonenumber'      => 'wordpressUser',
                 'sessionid'        => '1111-1111-1111-1111-1111-1111',
                 'speed'            => '137',
                 'direction'        => '237',
@@ -194,21 +194,21 @@ if (!class_exists('Gps_Tracker_Updater')) {
                 'eventtype'        => 'wordpress default'
             ), $atts));
             
-            return sprintf('<a href="%s">Gps Tracker Updater</a>',$this->gpstracker_url($latitude, $longitude, $username, $sessionid, $speed, $direction, $distance, urlencode($gpstime), $locationmethod, $accuracy, $extrainfo, urlencode($eventtype)));
+            return sprintf('<a href="%s">Gps Tracker Updater</a>',$this->gpstracker_url($latitude, $longitude, $phonenumber, $sessionid, $speed, $direction, $distance, urlencode($gpstime), $locationmethod, $accuracy, $extrainfo, urlencode($eventtype)));
         }
     
-        function gpstracker_url($latitude, $longitude, $username, $sessionid, $speed, $direction,
+        function gpstracker_url($latitude, $longitude, $phonenumber, $sessionid, $speed, $direction,
                 $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype) {
 
-                $update_location_query = '%s/index.php?latitude=%s&longitude=%s&username=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
+                $update_location_query = '%s/index.php?latitude=%s&longitude=%s&phonenumber=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
 
-                return sprintf($update_location_query, home_url(), $latitude, $longitude, $username, $sessionid, $speed, $direction, $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
+                return sprintf($update_location_query, home_url(), $latitude, $longitude, $phonenumber, $sessionid, $speed, $direction, $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
         }
 
         function gpstracker_query_vars($query_vars) {
             $query_vars[] = 'latitude';
             $query_vars[] = 'longitude';
-            $query_vars[] = 'username';
+            $query_vars[] = 'phonenumber';
             $query_vars[] = 'sessionid';
             $query_vars[] = 'speed';
             $query_vars[] = 'direction';
@@ -222,13 +222,10 @@ if (!class_exists('Gps_Tracker_Updater')) {
         }
     
         function parse_location_request($wp_query) {
-            
-            //exit(var_dump($_GET));
-            
             if (
                 isset($wp_query->query_vars['latitude']) && 
                 isset($wp_query->query_vars['longitude']) &&
-                isset($wp_query->query_vars['username']) &&
+                isset($wp_query->query_vars['phonenumber']) &&
                 isset($wp_query->query_vars['sessionid']) &&
                 isset($wp_query->query_vars['speed']) &&
                 isset($wp_query->query_vars['direction']) &&
@@ -248,7 +245,7 @@ if (!class_exists('Gps_Tracker_Updater')) {
             	array( 
             		'latitude' => $wp_query->query_vars['latitude'], 
             		'longitude' => $wp_query->query_vars['longitude'],
-                    'user_name' => $wp_query->query_vars['username'],
+                    'phone_number' => $wp_query->query_vars['phonenumber'],
                     'session_id' => $wp_query->query_vars['sessionid'],
                     'speed' => $wp_query->query_vars['speed'],
                     'direction' => $wp_query->query_vars['direction'],

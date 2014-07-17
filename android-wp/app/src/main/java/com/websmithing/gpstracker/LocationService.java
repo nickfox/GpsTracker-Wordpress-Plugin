@@ -62,6 +62,18 @@ public class LocationService extends Service implements
     private void startTracking() {
         Log.d(TAG, "startTracking");
 
+        SharedPreferences sharedPreferences = this.getSharedPreferences("com.websmithing.gpstracker.prefs", Context.MODE_PRIVATE);
+        String wordpressNonce = sharedPreferences.getString("wordpressNonce", "0");
+
+        if (wordpressNonce.equals("0")) {
+            Log.e(TAG, "startTracking wordpressNonce: 0");
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("currentlyTracking", false);
+            editor.putString("sessionID", "");
+            editor.commit();
+            return;
+        }
+
         if (GooglePlayServicesUtil.isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS) {
             locationClient = new LocationClient(this,this,this);
 
@@ -103,15 +115,13 @@ public class LocationService extends Service implements
         editor.commit();
 
         RequestParams requestParams = new RequestParams();
+        requestParams.put("gpstracker", "location");
         requestParams.put("latitude", Double.toString(location.getLatitude()));
         requestParams.put("longitude", Double.toString(location.getLongitude()));
+        requestParams.put("username", sharedPreferences.getString("userName", ""));
+        requestParams.put("sessionid", sharedPreferences.getString("sessionID", "0")); // uuid
         requestParams.put("speed", Double.toString(location.getSpeed())); // in miles per hour
-
-        try {
-            requestParams.put("gpstime", URLEncoder.encode(dateFormat.format(date), "UTF-8"));
-        } catch (UnsupportedEncodingException e) {}
-
-        requestParams.put("locationmethod", location.getProvider());
+        requestParams.put("direction", Float.toString(location.getBearing()));
 
         if (totalDistanceInMeters > 0) {
             requestParams.put("distance", Float.toString(totalDistanceInMeters / 1609)); // in miles,
@@ -119,13 +129,15 @@ public class LocationService extends Service implements
             requestParams.put("distance", 0); // in miles
         }
 
-        // phoneNumber is just an identifying string in the database, can be any identifier.
-        requestParams.put("phonenumber", sharedPreferences.getString("userName", ""));
-        requestParams.put("sessionid", sharedPreferences.getString("sessionID", "")); // uuid
+        try {
+            requestParams.put("gpstime", URLEncoder.encode(dateFormat.format(date), "UTF-8"));
+        } catch (UnsupportedEncodingException e) {}
+
+        requestParams.put("locationmethod", location.getProvider());
         requestParams.put("accuracy", Float.toString(location.getAccuracy())); // in meters
         requestParams.put("extrainfo",  Double.toString(location.getAltitude()));
         requestParams.put("eventtype", "android-wp");
-        requestParams.put("direction", Float.toString(location.getBearing()));
+        requestParams.put("wpnonce", sharedPreferences.getString("wordpressNonce", "1"));
 
         LoopjHttpClient.get(sharedPreferences.getString("defaultUploadWebsite", defaultUploadWebsite), requestParams, new AsyncHttpResponseHandler() {
             @Override

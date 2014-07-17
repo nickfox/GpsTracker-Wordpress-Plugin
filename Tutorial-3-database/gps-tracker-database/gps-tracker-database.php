@@ -3,7 +3,7 @@ defined('ABSPATH') or exit;
 /*
 Plugin Name: Gps Tracker Database
 Plugin URI: https://www.websmithing.com/gps-tracker
-Description: This plugin creates the database table and stored procedures for Gps Tracker
+Description: This plugin creates the database table and stored procedures for Gps Tracker.
 Version: 1.0.0
 Author: Nick Fox
 Author URI: https://www.websmithing.com/hire-me
@@ -30,7 +30,7 @@ if (!class_exists('Gps_Tracker')) {
               last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
               latitude decimal(10,6) NOT NULL DEFAULT '0.000000',
               longitude decimal(10,6) NOT NULL DEFAULT '0.000000',
-              phone_number varchar(50) NOT NULL DEFAULT '',
+              user_name varchar(50) NOT NULL DEFAULT '',
               session_id varchar(50) NOT NULL DEFAULT '',
               speed int(10) unsigned NOT NULL DEFAULT '0',
               direction int(10) unsigned NOT NULL DEFAULT '0',
@@ -42,7 +42,7 @@ if (!class_exists('Gps_Tracker')) {
               event_type varchar(50) NOT NULL DEFAULT '',
               UNIQUE KEY (gps_location_id),
               KEY session_id_index (session_id),
-              KEY phone_number_index (phone_number)
+              KEY user_name_index (user_name)
             ) $charset_collate;";
 
             require_once( ABSPATH . 'wp-admin/includes/upgrade.php' ); 
@@ -51,7 +51,7 @@ if (!class_exists('Gps_Tracker')) {
             $location_row_count = $wpdb->get_var( "SELECT COUNT(*) FROM {$table_name};" );
             
             if ($location_row_count == 0) {
-                $sql = "INSERT INTO {$table_name} VALUES (45,'2014-03-03 13:22:10',47.475931,-122.021119,'wordpressUser','8BA21D90-3F90-407F-BAAE-800B04B1F5EC',0,0,0.0,'2014-03-03 13:22:08','n/a',65,'altitude: 120m','ios');";            
+                $sql = "INSERT INTO {$table_name} VALUES (1,'2007-01-03 11:37:00',47.61,-122.33,'wordpressUser','8BA21D90-3F90-407F-BAAE-800B04B1F5EC',0,0,0.0,'2007-01-03 13:37:00','na',137,'na','wordpress');";            
                 $wpdb->query($sql);                
             }
 
@@ -62,63 +62,78 @@ if (!class_exists('Gps_Tracker')) {
             BEGIN
             CREATE TEMPORARY TABLE temp_routes (
                 session_id VARCHAR(50),
-                phone_number VARCHAR(50),
+                user_name VARCHAR(50),
                 start_time DATETIME,
                 end_time DATETIME)
                 ENGINE = MEMORY;
 
-            INSERT INTO temp_routes (session_id, phone_number)
-            SELECT DISTINCT session_id, phone_number
+            INSERT INTO temp_routes (session_id, user_name)
+            SELECT DISTINCT session_id, user_name
             FROM {$table_name};
 
             UPDATE temp_routes tr
             SET start_time = (SELECT MIN(gps_time) FROM {$table_name} gl
             WHERE gl.session_id = tr.session_id
-            AND gl.phone_number = tr.phone_number);
+            AND gl.user_name = tr.user_name);
 
             UPDATE temp_routes tr
             SET end_time = (SELECT MAX(gps_time) FROM {$table_name} gl
             WHERE gl.session_id = tr.session_id
-            AND gl.phone_number = tr.phone_number);
+            AND gl.user_name = tr.user_name);
 
             SELECT
-            CONCAT('{ \"session_id\": \"', CAST(session_id AS CHAR),  '\", \"phone_number\": \"', phone_number, '\", \"times\": \"(', DATE_FORMAT(start_time, '%b %e %Y %h:%i%p'), ' - ', DATE_FORMAT(end_time, '%b %e %Y %h:%i%p'), ')\" }') json
+            CONCAT('{ \"session_id\": \"', CAST(session_id AS CHAR),  '\", \"user_name\": \"', user_name, '\", \"times\": \"(', DATE_FORMAT(start_time, '%b %e %Y %h:%i%p'), ' - ', DATE_FORMAT(end_time, '%b %e %Y %h:%i%p'), ')\" }') json
             FROM temp_routes
             ORDER BY start_time DESC;
 
             DROP TABLE temp_routes;
             END;";                
-                
+ 
             $wpdb->query($sql); 
             // $wpdb->print_error();
             
             $procedure_name =  $wpdb->prefix . "get_route_for_map";
             $wpdb->query("DROP PROCEDURE IF EXISTS {$procedure_name};");
-            
+          
             $sql = "CREATE PROCEDURE {$procedure_name}(
-            _session_id VARCHAR(50),
-            _phone_number VARCHAR(50))
+            _session_id VARCHAR(50))
             BEGIN
             SELECT
-            CONCAT('<locations latitude=\"', CAST(latitude AS CHAR),'\" longitude=\"', CAST(longitude AS CHAR),
-                  '\" speed=\"', CAST(speed AS CHAR), '\" direction=\"', CAST(direction AS CHAR), '\" distance=\"', CAST(distance AS CHAR),
-                  '\" location_method=\"', location_method, '\" gps_time=\"', DATE_FORMAT(gps_time, '%b %e %Y %h:%i%p'), '\" phone_number=\"', phone_number,
-                  '\" session_id=\"', CAST(session_id AS CHAR), '\" accuracy=\"', CAST(accuracy AS CHAR), '\" extraInfo=\"', extraInfo, '\" />') xml
+            CONCAT('{ \"latitude\": \"', CAST(latitude AS CHAR),'\", \"longitude\": \"', CAST(longitude AS CHAR), '\", \"speed\": \"', CAST(speed AS CHAR), '\", \"direction\": \"', CAST(direction AS CHAR), '\", \"distance\": \"', CAST(distance AS CHAR), '\", \"location_method\": \"', location_method, '\", \"gps_time\": \"', DATE_FORMAT(gps_time, '%b %e %Y %h:%i%p'), '\", \"user_name\": \"', user_name, '\", \"session_id\": \"', CAST(session_id AS CHAR), '\", \"accuracy\": \"', CAST(accuracy AS CHAR), '\", \"extra_info\": \"', extra_info, '\" }') json
             FROM {$table_name}
             WHERE session_id = _session_id
-            AND phoneNumber = _phone_number
             ORDER BY last_update;
             END;";
-                        
-            $wpdb->query($sql);               
+                          
+            $wpdb->query($sql);
+            
+            $procedure_name =  $wpdb->prefix . "delete_route";
+            $wpdb->query("DROP PROCEDURE IF EXISTS {$procedure_name};");
+
+            $sql = "CREATE PROCEDURE {$procedure_name}(
+            _session_id VARCHAR(50))
+            BEGIN
+            DELETE FROM {$table_name}
+            WHERE sessionID = _sessionID;
+            END;";
+            
+            $wpdb->query($sql);                
         }
         
         // THIS NEEDS TO BE MOVED TO UNINSTALL.PHP
+        // #####################################################
+        
         public static function deactivate() {
             global $wpdb;
             $table_name = $wpdb->prefix . 'gps_locations';
             $sql = "DROP TABLE IF EXISTS {$table_name};";
-            // $wpdb->query($sql);
+            $wpdb->query($sql);
+        
+            $procedure_name =  $wpdb->prefix . "get_routes";
+            $wpdb->query("DROP PROCEDURE IF EXISTS {$procedure_name};");
+        
+            $procedure_name =  $wpdb->prefix . "get_route_for_map";
+            $wpdb->query("DROP PROCEDURE IF EXISTS {$procedure_name};");
         }
         
         function add_action_links($links) {
@@ -183,7 +198,7 @@ if (!class_exists('Gps_Tracker')) {
         }
     } // end class
 
-    add_filter('plugin_action_links_' . plugin_basename(__FILE__), array('Gps_Tracker', 'add_action_links'));
+    // add_filter('plugin_action_links_' . plugin_basename(__FILE__), array('Gps_Tracker', 'add_action_links'));
     
     register_activation_hook( __FILE__, array('Gps_Tracker', 'activate'));
     

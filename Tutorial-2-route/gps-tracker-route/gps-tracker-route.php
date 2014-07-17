@@ -12,7 +12,7 @@ License: GPL2
 
 class Gps_Tracker_Updater {
     private $update_location_route = 'gps-tracker\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\/([^\/]+)\Z';
-    private $update_location_query = 'index.php?latitude=%s&longitude=%s&phonenumber=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
+    private $update_location_query = 'index.php?latitude=%s&longitude=%s&username=%s&sessionid=%s&speed=%s&direction=%s&distance=%s&gpstime=%s&locationmethod=%s&accuracy=%s&extrainfo=%s&eventtype=%s';
     private $update_location_permalink = 'gps-tracker/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s/%s';
 
     function __construct() {
@@ -45,8 +45,6 @@ class Gps_Tracker_Updater {
             global $wp_rewrite;
             $wp_rewrite->flush_rules();
         }
-        
-        # exit(var_dump($_GET));
     }
     
     function uninstall() {
@@ -66,7 +64,7 @@ class Gps_Tracker_Updater {
             // default values
             'latitude'         => '47.61',
             'longitude'        => '-122.33',
-            'phonenumber'      => 'webUser',
+            'username'         => 'webUser',
             'sessionid'        => '1111-1111-1111-1111-1111-1111',
             'speed'            => '137',
             'direction'        => '237',
@@ -77,19 +75,19 @@ class Gps_Tracker_Updater {
             'extrainfo'        => 'na',
             'eventtype'        => 'na'
         ), $atts));
-        return sprintf('<a href="%s">Gps Tracker Route</a>',$this->gpstracker_url($latitude, $longitude, $phonenumber, $sessionid, 
+        return sprintf('<a href="%s">Gps Tracker Route</a>',$this->gpstracker_url($latitude, $longitude, $username, $sessionid, 
             $speed, $direction, $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype));
     }
     
-    function gpstracker_url($latitude, $longitude, $phonenumber, $sessionid, $speed, $direction,
+    function gpstracker_url($latitude, $longitude, $username, $sessionid, $speed, $direction,
                 $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype) {
         if (get_option('permalink_structure')) { // check if the blog has a permalink structure
             $gpstracker_permalink_url = '%s/' . $this->update_location_permalink;
-            return sprintf($gpstracker_permalink_url, home_url(), $latitude, $longitude, $phonenumber, $sessionid, $speed, $direction,
+            return sprintf($gpstracker_permalink_url, home_url(), $latitude, $longitude, $username, $sessionid, $speed, $direction,
                 $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
         } else {
             $gpstracker_url = '%s/' . $this->update_location_query;
-            return sprintf($gpstracker_url, home_url(), $latitude, $longitude, $phonenumber, $sessionid, $speed, $direction,
+            return sprintf($gpstracker_url, home_url(), $latitude, $longitude, $username, $sessionid, $speed, $direction,
                 $distance, $gpstime, $locationmethod, $accuracy, $extrainfo, $eventtype);
         }
     }
@@ -118,7 +116,7 @@ class Gps_Tracker_Updater {
     function gpstracker_query_vars($query_vars) {
         $query_vars[] = 'latitude';
         $query_vars[] = 'longitude';
-        $query_vars[] = 'phonenumber';
+        $query_vars[] = 'username';
         $query_vars[] = 'sessionid';
         $query_vars[] = 'speed';
         $query_vars[] = 'direction';
@@ -135,7 +133,7 @@ class Gps_Tracker_Updater {
         if (
             isset($wp_query->query_vars['latitude']) && 
             isset($wp_query->query_vars['longitude']) &&
-            isset($wp_query->query_vars['phonenumber']) &&
+            isset($wp_query->query_vars['username']) &&
             isset($wp_query->query_vars['sessionid']) &&
             isset($wp_query->query_vars['speed']) &&
             isset($wp_query->query_vars['direction']) &&

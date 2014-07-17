@@ -20,6 +20,7 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
 
 import java.util.UUID;
 
@@ -144,21 +145,23 @@ public class GpsTrackerActivity extends ActionBarActivity {
         if (currentlyTracking) {
             Toast.makeText(getApplicationContext(), R.string.tracking_has_now_stopped, Toast.LENGTH_LONG).show();
 
-            cancelAlarmManager();
-
             currentlyTracking = false;
             editor.putBoolean("currentlyTracking", false);
             editor.putString("sessionID", "");
+
+            cancelAlarmManager();
         } else {
             Toast.makeText(getApplicationContext(), R.string.tracking_has_now_started, Toast.LENGTH_LONG).show();
 
-            startAlarmManager();
-
+            String sessionID = UUID.randomUUID().toString();
+            editor.putString("sessionID", sessionID);
             currentlyTracking = true;
             editor.putBoolean("currentlyTracking", true);
             editor.putFloat("totalDistanceInMeters", 0f);
             editor.putBoolean("firstTimeGettingPosition", true);
-            editor.putString("sessionID",  UUID.randomUUID().toString());
+
+            getWordpressNonce(sessionID);
+            startAlarmManager();
         }
 
         editor.commit();
@@ -253,6 +256,42 @@ public class GpsTrackerActivity extends ActionBarActivity {
             Toast.makeText(getApplicationContext(), R.string.google_play_services_unavailable, Toast.LENGTH_LONG).show();
             return false;
         }
+    }
+
+    private void getWordpressNonce(String sessionID) {
+        SharedPreferences sharedPreferences = this.getSharedPreferences("com.websmithing.gpstracker.prefs", Context.MODE_PRIVATE);
+        final SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        RequestParams requestParams = new RequestParams();
+        requestParams.put("gpstracker", "nonce");
+        requestParams.put("sessionid", sessionID); // uuid
+        // Log.e(TAG, "sessionID: " + sessionID);
+
+        // http://codex.wordpress.org/Glossary#Nonce
+
+        LoopjHttpClient.get(defaultUploadWebsite, requestParams, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, org.apache.http.Header[] headers, byte[] responseBody) {
+                String wordpressNonce = new String(responseBody);
+
+                if (wordpressNonce.equals("0")) {
+                    Toast.makeText(getApplicationContext(), R.string.security_token_error, Toast.LENGTH_LONG).show();
+                    editor.putString("wordpressNonce", "0");
+                    Log.e(TAG, "getWordpressNonce1: 0");
+                } else {
+                    editor.putString("wordpressNonce", wordpressNonce);
+                    // Log.e(TAG, "getWordpressNonce2: " + wordpressNonce);
+                }
+                editor.commit();
+            }
+            @Override
+            public void onFailure(int statusCode, org.apache.http.Header[] headers, byte[] errorResponse, Throwable e) {
+                Toast.makeText(getApplicationContext(), R.string.reachability_error, Toast.LENGTH_LONG).show();
+                Log.e(TAG, "getWordpressNonce onFailure statusCode: " + statusCode);
+                editor.putString("wordpressNonce", "0");
+                editor.commit();
+            }
+        });
     }
 
     private void checkIfWebsiteIsReachable() {
